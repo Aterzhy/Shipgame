@@ -1,7 +1,7 @@
 <!doctype html>
-<html lang="tr"><head><meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Çifte Top</title>
+<title>Twin Cannon</title>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#06182b;--fg:#e8f4ff;--ac:#ffb703}
@@ -19,13 +19,13 @@ button:disabled{opacity:.4}
 #rs{position:fixed;left:50%;bottom:18%;transform:translateX(-50%);width:auto;padding:14px 28px;display:none}
 </style></head><body>
 <canvas id="c"></canvas>
-<button id="rs">Yeniden başlat</button>
+<button id="rs">Restart</button>
 <div id="ov"><div class="card">
-<h1>⚓ Çifte Top</h1>
-<p><b>Kaptan</b> gemiyi sürer, <b>Topçu</b> nişan alıp ateş eder. Düşman botlara karşı birlikte hayatta kalın!</p>
-<input id="code" maxlength="12" placeholder="ortak oda kodu (ör: askim)" autocapitalize="none">
-<button id="bj">Birlikte oyna</button>
-<button id="bs" class="s">Tek başıma dene</button>
+<h1>⚓ Twin Cannon</h1>
+<p><b>Captain</b> steers the ship, <b>Gunner</b> aims and shoots. Survive together against enemy boats!</p>
+<input id="code" maxlength="12" placeholder="room code (e.g. askim)" autocapitalize="none">
+<button id="bj">Play Together</button>
+<button id="bs" class="s">Try Solo</button>
 <p id="st"></p>
 </div></div>
 <script>
@@ -49,7 +49,7 @@ cv.onpointermove=e=>{const r=ptr.get(e.pointerId);if(r)upd(e,r)};
 cv.onpointerup=cv.onpointercancel=e=>{const r=ptr.get(e.pointerId);ptr.delete(e.pointerId);if(r==='j'){joy.dx=joy.dy=0;joy.on=0}if(r==='a')aim.f=0};
 $('rs').onclick=()=>{reset();$('rs').style.display='none'};
 
-// ---- lobi ----
+// ---- lobby ----
 let saved='';try{saved=localStorage.getItem('cc-code')||''}catch(e){}
 $('code').value=saved;
 $('bs').onclick=()=>{mode='solo';$('ov').style.display='none'};
@@ -63,16 +63,16 @@ boot();
 
 $('bj').onclick = () => {
   const c = $('code').value.toLowerCase().replace(/[^a-z0-9]/g,'');
-  if(c.length < 3) { $('st').textContent = 'Kod en az 3 hane olmalı.'; return; }
+  if(c.length < 3) { $('st').textContent = 'Code must be at least 3 characters.'; return; }
   try{localStorage.setItem('cc-code',c)}catch(e){}
-  $('st').textContent = 'Bağlanılıyor... (P2P)';
+  $('st').textContent = 'Connecting... (P2P)';
 
   const roomId = 'ciftetop-tr-pl-' + c; 
 
   peer = new Peer(roomId + '-host');
 
   peer.on('open', (id) => {
-    $('st').textContent = 'Kaptan: Oda kuruldu, partner bekleniyor...';
+    $('st').textContent = 'Captain: Room created, waiting for partner...';
     mode = 'solo';
     $('ov').style.display = 'none';
 
@@ -94,7 +94,7 @@ $('bj').onclick = () => {
     if (err.type === 'unavailable-id') {
       peer = new Peer();
       peer.on('open', (id) => {
-        $('st').textContent = 'Topçu: Odaya katılınıyor...';
+        $('st').textContent = 'Gunner: Joining room...';
         conn = peer.connect(roomId + '-host');
 
         conn.on('open', () => {
@@ -109,7 +109,7 @@ $('bj').onclick = () => {
         conn.on('close', () => { mode = 'solo'; });
       });
     } else {
-      $('st').textContent = 'Bağlantı hatası: ' + err.type;
+      $('st').textContent = 'Connection error: ' + err.type;
     }
   });
 };
@@ -137,7 +137,7 @@ setInterval(()=>{
   }
 },70);
 
-// ---- simülasyon ----
+// ---- simulation ----
 function step(dt){
   if(S.go)return;
   S.x=Math.max(14,Math.min(W-14,S.x+joy.dx*95*dt));
@@ -146,8 +146,8 @@ function step(dt){
   S.cd-=dt;
   if(gi.f&&S.cd<=0){S.cd=.32;const a=Math.atan2(gi.y-S.y,gi.x-S.x);S.b.push({x:S.x,y:S.y,vx:Math.cos(a)*280,vy:Math.sin(a)*280,o:0,l:1.3})}
   S.sp-=dt;
-  if(S.sp<=0&&S.e.length<12){
-    S.sp=Math.max(.8,2.6-S.w*.18);
+  if(S.sp<=0&&S.e.length<7){ // Maksimum düşman sayısı 12'den 7'ye düşürüldü
+    S.sp=Math.max(1.4,3.2-S.w*.15); // Doğma süresi uzatıldı
     const side=Math.random()*3|0,t=Math.random()<Math.min(.5,.2+S.w*.06)?1:0;
     const x=side===0?Math.random()*W:side===1?-10:W+10,y=side===0?-10:Math.random()*H*.6;
     S.e.push({id:nid++,x,y,hp:t?3:2,t,cd:2+Math.random()*2,w:0,la:0});
@@ -174,7 +174,7 @@ function glide(dt){
   for(const b of S.b){b.x+=b.vx*dt;b.y+=b.vy*dt}
 }
 
-// ---- çizim ----
+// ---- draw ----
 const fx=[],prev=new Map(),WARN=1.4;
 const CP=['#5d7389','#a9bccf','#eef3f8','#7fd0ff'],CE=['#3b1a1e','#74303a','#25262b','#ff8a3d'],CG=['#2f2a22','#8a4a1c','#25262b','#ffd23f'];
 function rr(x,y,w,h,r,f){g.fillStyle=f;g.beginPath();g.roundRect(x,y,w,h,r);g.fill()}
@@ -201,7 +201,6 @@ function draw(t){
   const cur=new Map(S.e.map(e=>[e.id,e]));
   for(const[id,e]of prev)if(!cur.has(id))fx.push({x:e.x,y:e.y,t:0});
   prev.clear();for(const[id,e]of cur)prev.set(id,{x:e.x,y:e.y});
-  // düşman uyarı hatları
   for(const e of S.e)if(e.w>0){
     const p=1-e.w/WARN;g.save();g.translate(e.x,e.y);g.rotate(e.la);
     g.fillStyle='rgba(255,50,40,'+(.12+.28*p)+')';g.fillRect(16,-3-9*p,560,6+18*p);
@@ -224,21 +223,21 @@ function draw(t){
   if(flash>0){g.fillStyle='rgba(230,57,70,'+flash+')';g.fillRect(0,0,W,H)}
   g.restore();
   g.setTransform(sc,0,0,sc,ox,oy);
-  // sabit yön tuşu / ateş ipucu
+  
   if(mode!=='guest'){
     g.fillStyle='rgba(8,30,60,.42)';g.strokeStyle='rgba(255,255,255,.6)';g.lineWidth=2.5;g.beginPath();g.arc(JB.x,JB.y,50,0,7);g.fill();g.stroke();
     g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=3;g.lineCap='round';
     for(const[dx,dy]of[[0,-1],[1,0],[0,1],[-1,0]]){const cx=JB.x+dx*36,cy=JB.y+dy*36;g.beginPath();g.moveTo(cx-dy*6+dx*-4,cy+dx*6+dy*-4);g.lineTo(cx+dx*4,cy+dy*4);g.lineTo(cx+dy*6+dx*-4,cy-dx*6+dy*-4);g.stroke()}
     const kx=JB.x+joy.dx*44,ky=JB.y+joy.dy*44,kg=g.createRadialGradient(kx-4,ky-4,2,kx,ky,17);kg.addColorStop(0,'#fff');kg.addColorStop(1,'#7cc7ff');g.fillStyle=kg;g.beginPath();g.arc(kx,ky,16,0,7);g.fill();
   }
-  if(mode!=='host'){const fx0=W-62,fy0=H-74,on=aim.f;g.fillStyle=on?'rgba(255,200,40,.5)':'rgba(8,30,60,.42)';g.strokeStyle=on?'#ffd23f':'rgba(255,255,255,.6)';g.lineWidth=2.5;g.beginPath();g.arc(fx0,fy0,38,0,7);g.fill();g.stroke();g.fillStyle='#fff';g.font='bold 12px system-ui';g.textAlign='center';g.fillText('DOKUN',fx0,fy0-2);g.fillText('= ATEŞ',fx0,fy0+13)}
-  // HUD
+  if(mode!=='host'){const fx0=W-62,fy0=H-74,on=aim.f;g.fillStyle=on?'rgba(255,200,40,.5)':'rgba(8,30,60,.42)';g.strokeStyle=on?'#ffd23f':'rgba(255,255,255,.6)';g.lineWidth=2.5;g.beginPath();g.arc(fx0,fy0,38,0,7);g.fill();g.stroke();g.fillStyle='#fff';g.font='bold 12px system-ui';g.textAlign='center';g.fillText('TOUCH',fx0,fy0-2);g.fillText('= SHOOT',fx0,fy0+13)}
+  
   rr(8,8,150,38,12,'rgba(6,24,48,.55)');rr(16,14,134,10,5,'rgba(255,255,255,.18)');
   const hg=g.createLinearGradient(16,0,150,0);hg.addColorStop(0,S.hp>3?'#4ade80':'#f87171');hg.addColorStop(1,S.hp>3?'#22c55e':'#ef4444');rr(16,14,Math.max(0,S.hp*13.4),10,5,hg);
-  g.fillStyle='#fff';g.font='bold 12px system-ui';g.textAlign='left';g.fillText('Skor '+S.sc+'  ·  Dalga '+S.w,16,40);
-  const rl=mode==='host'?'⚓ KAPTAN':mode==='guest'?'🎯 TOPÇU':'⚓🎯 TEK KİŞİ';
-  rr(W-128,8,120,38,12,'rgba(6,24,48,.55)');g.textAlign='right';g.fillText(rl,W-16,25);g.font='11px system-ui';g.fillStyle='#9fe8c0';g.fillText(peer?(mode==='solo'?'partner bekleniyor…':'bağlı ✓'):'çevrimdışı',W-16,40);
-  if(S.go){g.fillStyle='rgba(4,16,36,.7)';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.textAlign='center';g.font='bold 32px system-ui';g.fillText('Gemi battı!',W/2,H/2-30);g.font='17px system-ui';g.fillText('Skor: '+S.sc+' · Dalga '+S.w,W/2,H/2);if(mode==='guest')g.fillText('Kaptan yeniden başlatsın',W/2,H/2+34)}
+  g.fillStyle='#fff';g.font='bold 12px system-ui';g.textAlign='left';g.fillText('Score '+S.sc+'  ·  Wave '+S.w,16,40);
+  const rl=mode==='host'?'⚓ CAPTAIN':mode==='guest'?'🎯 GUNNER':'⚓🎯 SOLO';
+  rr(W-128,8,120,38,12,'rgba(6,24,48,.55)');g.textAlign='right';g.fillText(rl,W-16,25);g.font='11px system-ui';g.fillStyle='#9fe8c0';g.fillText(peer?(mode==='solo'?'waiting for partner...':'connected ✓'):'offline',W-16,40);
+  if(S.go){g.fillStyle='rgba(4,16,36,.7)';g.fillRect(0,0,W,H);g.fillStyle='#fff';g.textAlign='center';g.font='bold 32px system-ui';g.fillText('Ship Sank!',W/2,H/2-30);g.font='17px system-ui';g.fillText('Score: '+S.sc+' · Wave '+S.w,W/2,H/2);if(mode==='guest')g.fillText('Captain must restart',W/2,H/2+34)}
 }
 let last=0;
 function loop(t){
